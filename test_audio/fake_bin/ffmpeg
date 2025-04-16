@@ -1,0 +1,5 @@
+#!/bin/bash
+echo "[fake ffmpeg] Pretending to convert: $*"
+# Simulate success by creating an empty .mp3 output file
+OUT="${@: -1}"  # last argument is the output path
+touch "$OUT"

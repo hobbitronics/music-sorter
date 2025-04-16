@@ -1,0 +1,39 @@
+#!/bin/bash
+
+for arg in "$@"; do
+  case $arg in
+    format_tags=artist)
+      TAG="artist"
+      ;;
+    format_tags=album)
+      TAG="album"
+      ;;
+    format_tags=title)
+      TAG="title"
+      ;;
+  esac
+done
+
+FILE="${*: -1}" # Get last argument (the filename)
+
+if [[ "$FILE" == *"Song 1"* ]]; then
+  case $TAG in
+    artist) echo "Fake Artist" ;;
+    album) echo "Fake Album" ;;
+    title) echo "Fake Title 1" ;;
+  esac
+elif [[ "$FILE" == *"Song 2"* ]]; then
+  case $TAG in
+    artist) echo "Another Artist" ;;
+    album) echo "Another Album" ;;
+    title) echo "Another Title" ;;
+  esac
+elif [[ "$FILE" == *"Song 3"* ]]; then
+  case $TAG in
+    artist) echo "Third Artist" ;;
+    album) echo "Third Album" ;;
+    title) echo "Third Title" ;;
+  esac
+else
+  echo ""
+fi
