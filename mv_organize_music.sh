@@ -26,6 +26,7 @@ while IFS= read -r -d '' file; do
 done < <(find "$SOURCE" -type f ! -path "$DEST/*" -print0)
 
 TOTAL=${#FILES[@]}
+FAILURE_LOG=() # Initialize an empty array to log any failures
 
 for i in "${!FILES[@]}"; do
     FILE="${FILES[$i]}"
@@ -33,8 +34,6 @@ for i in "${!FILES[@]}"; do
     PERCENT=$((INDEX * 100 / TOTAL))
     
     echo "[${INDEX}/${TOTAL}] (${PERCENT}%) Processing: $(basename "$FILE")"
-
-    FAILURE_LOG=() # Initialize an empty array to log any failures
     
     ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist \
         -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Artist:$INDEX"); })
@@ -80,5 +79,5 @@ done
 
 find "$SOURCE" "$DEST" -type d -empty -delete
 if [ "${#FAILURE_LOG[@]}" -ne 0 ]; then
-    echo -e "\033[0;31m$(( ${#FAILURE_LOG[@]} )) metadata extraction failures\033[0m"
+    printf '%s\n' "${FAILURE_LOG[@]}" | sort | uniq -c
 fi
