@@ -47,13 +47,12 @@ for i in "${!FILES[@]}"; do
         SAFE_ALBUM=$(date +%Y-%m-%d-%H-%M-%S-%N)
         TITLE=$(basename "$FILE")
     else
-        METADATA=$(ffprobe -v quiet -show_entries format_tags=artist,album,title \
-            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null)
-        IFS=$'\n' read -rd '' ARTIST ALBUM TITLE <<< "$METADATA" || {
-            [[ -z "$ARTIST" ]] && { ARTIST="Unknown Artist"; FAILURE_LOG+=("Artist:$INDEX"); }
-            [[ -z "$ALBUM" ]] && { ALBUM="Unknown Album"; FAILURE_LOG+=("Album:$INDEX"); }
-            [[ -z "$TITLE" ]] && { TITLE=$(basename "$FILE"); FAILURE_LOG+=("Title:$INDEX"); }
-        }
+        ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || {  ARTIST="Unknown Artist"; FAILURE_LOG+=("Artist:$INDEX"); })
+        ALBUM=$(ffprobe -v quiet -show_entries format_tags=album \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { ALBUM="Unknown Album"; FAILURE_LOG+=("Album:$INDEX"); })
+        TITLE=$(ffprobe -v quiet -show_entries format_tags=title \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { TITLE=$(basename "$FILE"); FAILURE_LOG+=("Title:$INDEX"); })
 
         SAFE_ARTIST=$(sanitize "$ARTIST")
         SAFE_ALBUM=$(sanitize "$ALBUM")
