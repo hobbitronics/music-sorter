@@ -38,22 +38,22 @@ for i in "${!FILES[@]}"; do
     
     echo "[${INDEX}/${TOTAL}] (${PERCENT}%) Processing: $(basename "$FILE")"
     
-    METADATA=$(ffprobe -v quiet -show_entries format_tags=artist,album,title \
-        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null)
-    IFS=$'\n' read -rd '' ARTIST ALBUM TITLE <<< "$METADATA" || {
-        [[ -z "$ARTIST" ]] && { ARTIST="Unknown Artist"; FAILURE_LOG+=("Artist:$INDEX"); }
-        [[ -z "$ALBUM" ]] && { ALBUM="Unknown Album"; FAILURE_LOG+=("Album:$INDEX"); }
-        [[ -z "$TITLE" ]] && { TITLE=$(basename "$FILE"); FAILURE_LOG+=("Title:$INDEX"); }
-    }
-
     FILETYPE=$(file --brief --mime-type "$FILE" 2>/dev/null || true)
     FILE_TYPES+=("$FILETYPE")
-
+    
     if [[ "$FILETYPE" != audio/* ]]; then
         NOT_AUDIO=$((NOT_AUDIO + 1))
         SAFE_ARTIST="not_audio"
         SAFE_ALBUM=$(date +%Y-%m-%d-%H-%M-%S-%N)
     else
+        METADATA=$(ffprobe -v quiet -show_entries format_tags=artist,album,title \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null)
+        IFS=$'\n' read -rd '' ARTIST ALBUM TITLE <<< "$METADATA" || {
+            [[ -z "$ARTIST" ]] && { ARTIST="Unknown Artist"; FAILURE_LOG+=("Artist:$INDEX"); }
+            [[ -z "$ALBUM" ]] && { ALBUM="Unknown Album"; FAILURE_LOG+=("Album:$INDEX"); }
+            [[ -z "$TITLE" ]] && { TITLE=$(basename "$FILE"); FAILURE_LOG+=("Title:$INDEX"); }
+        }
+
         SAFE_ARTIST=$(sanitize "$ARTIST")
         SAFE_ALBUM=$(sanitize "$ALBUM")
     fi
