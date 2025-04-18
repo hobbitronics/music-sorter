@@ -26,6 +26,9 @@ while IFS= read -r -d '' file; do
 done < <(find "$SOURCE" -type f ! -path "$DEST/*" -print0)
 
 TOTAL=${#FILES[@]}
+MOVED=0
+NOT_AUDIO=0
+FILE_TYPES=()
 FAILURE_LOG=() # Initialize an empty array to log any failures
 
 for i in "${!FILES[@]}"; do
@@ -43,7 +46,7 @@ for i in "${!FILES[@]}"; do
         -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Title:$INDEX"); })
         
     FILETYPE=$(file --brief --mime-type "$FILE" 2>/dev/null || true)
-
+    FILE_TYPES+=("$FILETYPE")
     # Set default values if metadata is missing
     [[ -z "$ARTIST" ]] && ARTIST="Unknown Artist"
     [[ -z "$ALBUM" ]] && ALBUM="Unknown Album"
@@ -51,6 +54,7 @@ for i in "${!FILES[@]}"; do
 
     if [[ "$FILETYPE" != audio/* ]]; then
         SAFE_ARTIST="not_audio"
+        NOT_AUDIO=$((NOT_AUDIO + 1))
         SAFE_ALBUM=$(date +%Y-%m-%d-%H-%M-%S-%N)
     else
         SAFE_ARTIST=$(sanitize "$ARTIST")
@@ -69,6 +73,7 @@ for i in "${!FILES[@]}"; do
         echo -e "\033[0;31mMetadata extraction failed for indices: ${FAILURE_LOG[*]}\033[0m"
     elif [ ! -f "$OUTFILE" ]; then
         mv -n "$FILE" "$OUTFILE"
+        MOVED=$((MOVED + 1))
         echo -e "\033[0;32m→ Moved: $FILE → $OUTFILE\033[0m"
     else
         echo "→ Skipped (already exists): $OUTFILE"
@@ -78,6 +83,8 @@ for i in "${!FILES[@]}"; do
 done
 
 find "$SOURCE" "$DEST" -type d -empty -delete
+echo "Moved $MOVED out of $TOTAL files. $NOT_AUDIO files were not audio.\n"
+echo "File types: "${FILE_TYPES[@]}\n"
 if [ "${#FAILURE_LOG[@]}" -ne 0 ]; then
     printf '%s\n' "${FAILURE_LOG[@]}" | sort | uniq -c
 fi
