@@ -84,7 +84,7 @@ done
 
 find "$SOURCE" "$DEST" -type d -empty -delete
 echo "Moved $MOVED out of $TOTAL files. $NOT_AUDIO files were not audio.\n"
-echo "File types: "${FILE_TYPES[@]}\n"
+echo "File types: "${FILE_TYPES[@]}\n""
 if [ "${#FAILURE_LOG[@]}" -ne 0 ]; then
     printf '%s\n' "${FAILURE_LOG[@]}" | sort | uniq -c
 fi
