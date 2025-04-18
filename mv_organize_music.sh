@@ -45,6 +45,7 @@ for i in "${!FILES[@]}"; do
         NOT_AUDIO=$((NOT_AUDIO + 1))
         SAFE_ARTIST="not_audio"
         SAFE_ALBUM=$(date +%Y-%m-%d-%H-%M-%S-%N)
+        TITLE=$(basename "$FILE")
     else
         METADATA=$(ffprobe -v quiet -show_entries format_tags=artist,album,title \
             -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null)
