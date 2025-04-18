@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
 
 # The source directory containing the files to organize
 SOURCE=${1:-"./"}
@@ -9,7 +11,7 @@ DEST=${2:-"./organized"}
 mkdir -p "$DEST"
 
 sanitize() {
-    echo "$1" | tr '/:\\?*\"<>|' '_' | sed 's/[^[:print:]]//g'
+    echo "$1" | iconv -c -t UTF-8 | tr -d '\000' | tr '/:\\?*\"<>|\''\'\''`$!' '_' | sed 's/[^[:print:]]//g' | tr -s '_'
 }
 
 # Read all files (excluding those in DEST) into an array
@@ -29,12 +31,14 @@ for i in "${!FILES[@]}"; do
     
     echo "[${INDEX}/${TOTAL}] (${PERCENT}%) Processing: $(basename "$FILE")"
 
+    FAILURE_LOG=() # Initialize an empty array to log any failures
+    
     ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist \
-        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || true)
+        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Artist:$INDEX"); })
     ALBUM=$(ffprobe -v quiet -show_entries format_tags=album \
-        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || true)
+        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Album:$INDEX"); })
     TITLE=$(ffprobe -v quiet -show_entries format_tags=title \
-        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || true)
+        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Title:$INDEX"); })
         
     FILETYPE=$(file --brief --mime-type "$FILE" 2>/dev/null || true)
 
@@ -58,9 +62,12 @@ for i in "${!FILES[@]}"; do
     EXT="${FILE##*.}"
     OUTFILE="$DEST_DIR/$SAFE_TITLE.$EXT"
 
-    if [ ! -f "$OUTFILE" ]; then
+
+    if [ "${#FAILURE_LOG[@]}" -ne 0 ]; then
+        echo -e "\033[0;31mMetadata extraction failed for indices: ${FAILURE_LOG[*]}\033[0m"
+    elif [ ! -f "$OUTFILE" ]; then
         mv -n "$FILE" "$OUTFILE"
-        echo "→ Moved: $FILE → $OUTFILE"
+        echo -e "\033[0;32m→ Moved: $FILE → $OUTFILE\033[0m"
     else
         echo "→ Skipped (already exists): $OUTFILE"
     fi
@@ -68,4 +75,7 @@ for i in "${!FILES[@]}"; do
     echo
 done
 
-find "$DEST" -type d -empty -delete
+find "$SOURCE" "$DEST" -type d -empty -delete
+if [ "${#FAILURE_LOG[@]}" -ne 0 ]; then
+    echo -e "\033[0;31m$(( ${#FAILURE_LOG[@]} )) metadata extraction failures\033[0m"
+fi
