@@ -11,7 +11,10 @@ DEST=${2:-"./organized"}
 mkdir -p "$DEST"
 
 sanitize() {
-    echo "$1" | tr '/:\\?*\"<>|' '_' | sed 's/[^[:print:]]//g'
+    echo "$1" | iconv -c -t UTF-8 | tr -d '\000' \
+        | tr '/\\:*?"<>|`$!' '_' \
+        | sed 's/[^[:print:]]//g' \
+        | tr -s '_'
 }
 
 # Read all files (excluding those in DEST) into an array
