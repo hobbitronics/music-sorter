@@ -38,23 +38,20 @@ for i in "${!FILES[@]}"; do
     
     echo "[${INDEX}/${TOTAL}] (${PERCENT}%) Processing: $(basename "$FILE")"
     
-    ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist \
-        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Artist:$INDEX"); })
-    ALBUM=$(ffprobe -v quiet -show_entries format_tags=album \
-        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Album:$INDEX"); })
-    TITLE=$(ffprobe -v quiet -show_entries format_tags=title \
-        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { FAILURE_LOG+=("Title:$INDEX"); })
-        
+    METADATA=$(ffprobe -v quiet -show_entries format_tags=artist,album,title \
+        -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null)
+    IFS=$'\n' read -rd '' ARTIST ALBUM TITLE <<< "$METADATA" || {
+        [[ -z "$ARTIST" ]] && { ARTIST="Unknown Artist"; FAILURE_LOG+=("Artist:$INDEX"); }
+        [[ -z "$ALBUM" ]] && { ALBUM="Unknown Album"; FAILURE_LOG+=("Album:$INDEX"); }
+        [[ -z "$TITLE" ]] && { TITLE=$(basename "$FILE"); FAILURE_LOG+=("Title:$INDEX"); }
+    }
+
     FILETYPE=$(file --brief --mime-type "$FILE" 2>/dev/null || true)
     FILE_TYPES+=("$FILETYPE")
-    # Set default values if metadata is missing
-    [[ -z "$ARTIST" ]] && ARTIST="Unknown Artist"
-    [[ -z "$ALBUM" ]] && ALBUM="Unknown Album"
-    [[ -z "$TITLE" ]] && TITLE=$(basename "$FILE")
 
     if [[ "$FILETYPE" != audio/* ]]; then
-        SAFE_ARTIST="not_audio"
         NOT_AUDIO=$((NOT_AUDIO + 1))
+        SAFE_ARTIST="not_audio"
         SAFE_ALBUM=$(date +%Y-%m-%d-%H-%M-%S-%N)
     else
         SAFE_ARTIST=$(sanitize "$ARTIST")
