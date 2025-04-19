@@ -44,7 +44,7 @@ for i in "${!FILES[@]}"; do
     if [[ "$FILETYPE" != audio/* ]]; then
         NOT_AUDIO=$((NOT_AUDIO + 1))
         SAFE_ARTIST="not_audio"
-        SAFE_ALBUM=$(date +%Y-%m-%d-%H-%M-%S-%N)
+        SAFE_ALBUM="unknown_album"
         TITLE=$(basename "$FILE")
     else
         ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist \
