@@ -39,6 +39,16 @@ for i in "${!FILES[@]}"; do
     echo "[${INDEX}/${TOTAL}] (${PERCENT}%) Processing: $(basename "$FILE")"
     
     FILETYPE=$(file --brief --mime-type "$FILE" 2>/dev/null || true)
+    if [ -z "$FILETYPE" ]; then
+        case "$FILE" in
+            *.flac) FILETYPE="audio";;
+            *.mp3) FILETYPE="audio";;
+            *.m4a) FILETYPE="audio";;
+            *.wav) FILETYPE="audio";;
+            *) FILETYPE="unknown";;
+        esac
+    fi
+
     FILE_TYPES+=("$FILETYPE")
     
     if [[ "$FILETYPE" != audio/* ]]; then
