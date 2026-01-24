@@ -2,6 +2,11 @@
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
+if ! command -v ffprobe &> /dev/null; then
+    echo "ffprobe is required, but it was not found."
+    exit 1
+fi
+
 # The source directory containing the files to organize
 SOURCE=${1:-"./"}
 # The destination directory for the organized files
