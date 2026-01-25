@@ -34,9 +34,10 @@ TOTAL=${#FILES[@]}
 MOVED=0
 NOT_AUDIO=0
 FILE_TYPES=()
-FAILURE_LOG=() # Initialize an empty array to log any failures
+ALL_FAILURES=()
 
 for i in "${!FILES[@]}"; do
+    FAILURE_LOG=() # Initialize an empty array to log any failures
     FILE="${FILES[$i]}"
     BASENAME=$(basename "$FILE")
     NAME="${BASENAME%.*}"
@@ -98,6 +99,9 @@ for i in "${!FILES[@]}"; do
             FAILURE_LOG+=("Title:$INDEX")
         fi
 
+        if ((${#FAILURE_LOG[@]})); then
+            ALL_FAILURES+=("${FAILURE_LOG[@]}")
+        fi
     fi
     SAFE_ARTIST=$(sanitize "$ARTIST")
     SAFE_ALBUM=$(sanitize "$ALBUM")
@@ -130,6 +134,6 @@ done
 find "$SOURCE" "$DEST" -type d -empty -delete
 echo -e "Moved $MOVED out of $TOTAL files. $NOT_AUDIO files were not audio.\n"
 echo -e "File types: $(printf "%s\n" "${FILE_TYPES[@]}" | sort -u)\n"
-if [ "${#FAILURE_LOG[@]}" -ne 0 ]; then
-    printf '%s\n' "${FAILURE_LOG[@]}" | sort | uniq -c
+if [ "${#ALL_FAILURES[@]}" -ne 0 ]; then
+    printf '%s\n' "${ALL_FAILURES[@]}" | sort | uniq -c
 fi
