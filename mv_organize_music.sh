@@ -38,10 +38,27 @@ FAILURE_LOG=() # Initialize an empty array to log any failures
 
 for i in "${!FILES[@]}"; do
     FILE="${FILES[$i]}"
+    BASENAME=$(basename "$FILE")
+    NAME="${BASENAME%.*}"
+
+    SAFE_ARTIST=""
+    SAFE_ALBUM=""
+    SAFE_TITLE=""
+
+    PARENT_DIR=$(basename "$(dirname "$FILE")")
+    GRANDPARENT_DIR=$(basename "$(dirname "$(dirname "$FILE")")")
+    ARTIST=${ARTIST:-$GRANDPARENT_DIR}
+    ALBUM=${ALBUM:-$PARENT_DIR}
+
+    # 3. Final Fallback: Hardcoded defaults if guessing also fails
+    ARTIST=${ARTIST:-"Unknown Artist"}
+    ALBUM=${ALBUM:-"Unknown Album"}
+    TITLE=${TITLE:-$NAME}
+    
     INDEX=$((i + 1))
     PERCENT=$((INDEX * 100 / TOTAL))
     
-    echo "[${INDEX}/${TOTAL}] (${PERCENT}%) Processing: $(basename "$FILE")"
+    echo "[${INDEX}/${TOTAL}] (${PERCENT}%) Processing: $BASENAME"
     
     FILETYPE=$(file --brief --mime-type "$FILE" 2>/dev/null || true)
     if [ -z "$FILETYPE" ]; then
@@ -58,26 +75,39 @@ for i in "${!FILES[@]}"; do
     
     if [[ "$FILETYPE" != audio/* ]]; then
         NOT_AUDIO=$((NOT_AUDIO + 1))
-        SAFE_ARTIST="not_audio"
-        SAFE_ALBUM="unknown_album"
-        TITLE=$(basename "$FILE")
     else
-        ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist \
-            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || {  ARTIST="Unknown Artist"; FAILURE_LOG+=("Artist:$INDEX"); })
-        ALBUM=$(ffprobe -v quiet -show_entries format_tags=album \
-            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { ALBUM="Unknown Album"; FAILURE_LOG+=("Album:$INDEX"); })
-        TITLE=$(ffprobe -v quiet -show_entries format_tags=title \
-            -of default=noprint_wrappers=1:nokey=1 "$FILE" 2>/dev/null || { TITLE=$(basename "$FILE"); FAILURE_LOG+=("Title:$INDEX"); })
+        ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist:stream_tags=artist \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
+        ALBUM=$(ffprobe -v quiet -show_entries format_tags=album:stream_tags=album \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
+        TITLE=$(ffprobe -v quiet -show_entries format_tags=title:stream_tags=title \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
 
-        SAFE_ARTIST=$(sanitize "$ARTIST")
-        SAFE_ALBUM=$(sanitize "$ALBUM")
+        if [[ -z "$ARTIST" ]]; then
+            FAILURE_LOG+=("Artist:$INDEX")
+        fi
+
+        if [[ -z "$ALBUM" ]]; then
+            FAILURE_LOG+=("Album:$INDEX")
+        fi
+
+        if [[ -z "$TITLE" ]]; then
+            FAILURE_LOG+=("Title:$INDEX")
+        fi
+
     fi
+    SAFE_ARTIST=$(sanitize "$ARTIST")
+    SAFE_ALBUM=$(sanitize "$ALBUM")
     SAFE_TITLE=$(sanitize "$TITLE")
 
     DEST_DIR="${DEST%/}/$SAFE_ARTIST/$SAFE_ALBUM"
     mkdir -p "$DEST_DIR"
 
-    EXT="${FILE##*.}"
+    EXT=""
+    if [[ "$BASENAME" == *.* ]]; then
+        EXT="${BASENAME##*.}"
+    fi
+
     OUTFILE="$DEST_DIR/$SAFE_TITLE.$EXT"
 
 
