@@ -40,7 +40,10 @@ for i in "${!FILES[@]}"; do
     FILE="${FILES[$i]}"
     BASENAME=$(basename "$FILE")
     NAME="${BASENAME%.*}"
-
+    
+    ARTIST=""
+    ALBUM=""
+    TITLE=""
     SAFE_ARTIST=""
     SAFE_ALBUM=""
     SAFE_TITLE=""
