@@ -77,26 +77,33 @@ for i in "${!FILES[@]}"; do
 
     FILE_TYPES+=("$FILETYPE")
     
-    if [[ "$FILETYPE" != audio/* ]]; then
+    if [[ "$FILETYPE" != audio/* && "$FILETYPE" != "audio" ]]; then
         NOT_AUDIO=$((NOT_AUDIO + 1))
     else
+        # Preserve any previously computed fallback values before probing metadata
+        ORIG_ARTIST="$ARTIST"
+        ORIG_ALBUM="$ALBUM"
+        ORIG_TITLE="$TITLE"
+
         ARTIST=$(ffprobe -v quiet -show_entries format_tags=artist:stream_tags=artist \
             -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
-        ALBUM=$(ffprobe -v quiet -show_entries format_tags=album:stream_tags=album \
-            -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
-        TITLE=$(ffprobe -v quiet -show_entries format_tags=title:stream_tags=title \
-            -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
-
         if [[ -z "$ARTIST" ]]; then
             FAILURE_LOG+=("Artist:$INDEX")
+            ARTIST="$ORIG_ARTIST"
         fi
 
+        ALBUM=$(ffprobe -v quiet -show_entries format_tags=album:stream_tags=album \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
         if [[ -z "$ALBUM" ]]; then
             FAILURE_LOG+=("Album:$INDEX")
+            ALBUM="$ORIG_ALBUM"
         fi
 
+        TITLE=$(ffprobe -v quiet -show_entries format_tags=title:stream_tags=title \
+            -of default=noprint_wrappers=1:nokey=1 "$FILE" | head -n1)
         if [[ -z "$TITLE" ]]; then
             FAILURE_LOG+=("Title:$INDEX")
+            TITLE="$ORIG_TITLE"
         fi
 
         if ((${#FAILURE_LOG[@]})); then
@@ -115,9 +122,11 @@ for i in "${!FILES[@]}"; do
         EXT="${BASENAME##*.}"
     fi
 
-    OUTFILE="$DEST_DIR/$SAFE_TITLE.$EXT"
-
-
+    if [[ -n "$EXT" ]]; then
+        OUTFILE="$DEST_DIR/$SAFE_TITLE.$EXT"
+    else
+        OUTFILE="$DEST_DIR/$SAFE_TITLE"
+    fi
     if [ "${#FAILURE_LOG[@]}" -ne 0 ]; then
         echo -e "\033[0;31mMetadata extraction failed for indices: ${FAILURE_LOG[*]}\033[0m"
     elif [ ! -f "$OUTFILE" ]; then
