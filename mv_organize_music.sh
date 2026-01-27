@@ -144,5 +144,7 @@ find "$SOURCE" "$DEST" -type d -empty -delete
 echo -e "Moved $MOVED out of $TOTAL files. $NOT_AUDIO files were not audio.\n"
 echo -e "File types: $(printf "%s\n" "${FILE_TYPES[@]}" | sort -u)\n"
 if [ "${#ALL_FAILURES[@]}" -ne 0 ]; then
-    printf '%s\n' "${ALL_FAILURES[@]}" | sort | uniq -c
+    echo "Total number of metadata failures: ${#ALL_FAILURES[@]}"
+else
+    echo "No metadata failures."
 fi
